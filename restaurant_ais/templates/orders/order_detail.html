@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Заказ №{{ order['id'] }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Заказ №{{ order['id'] }} — стол {{ order['table_number'] or '—' }}</h1>
+        <p class="subtitle">
+            Официант: {{ order['waiter_name'] or '—' }} ·
+            Гостей: {{ order['guests'] }} ·
+            Статус: <span class="badge badge--{{ order['status'] }}">
+                {{ {'open': 'Открыт', 'sent': 'Передан на кухню', 'served': 'Подано', 'paid': 'Оплачен', 'cancelled': 'Отменён'}[order['status']] }}
+            </span>
+        </p>
+    </div>
+    <a class="btn btn--secondary" href="{{ url_for('orders.tables') }}">← К схеме зала</a>
+</div>
+
+<div class="grid grid--2">
+    <div class="card">
+        <h3 class="mt-0">Позиции заказа</h3>
+        {% for item in items %}
+        <div class="order-line">
+            <div>
+                <div class="order-line__name">{{ item['dish_name'] }} × {{ item['qty'] }}</div>
+                <div class="order-line__meta">
+                    {{ item['price']|round(2) }} ₽/шт ·
+                    <span class="badge badge--{{ item['status'] }}">
+                        {{ {'new': 'Новая', 'cooking': 'Готовится', 'ready': 'Готово', 'served': 'Подано', 'cancelled': 'Отменена'}[item['status']] }}
+                    </span>
+                    {% if item['comment'] %} · {{ item['comment'] }}{% endif %}
+                </div>
+            </div>
+            <div class="btn-row">
+                {% if item['status'] not in ('cancelled', 'served') %}
+                    {% if item['status'] == 'ready' and order['status'] == 'sent' %}
+                    <form method="post" action="{{ url_for('orders.update_item_status', item_id=item['id']) }}">
+                        <input type="hidden" name="status" value="served">
+                        <button class="btn btn--sm btn--success" type="submit">Подано</button>
+                    </form>
+                    {% endif %}
+                    {% if item['status'] == 'new' and order['status'] == 'open' %}
+                    <form method="post" action="{{ url_for('orders.remove_item', item_id=item['id']) }}" data-confirm="Убрать позицию из заказа?">
+                        <button class="btn btn--sm btn--danger" type="submit">Убрать</button>
+                    </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <p class="empty-state">В заказе пока нет позиций</p>
+        {% endfor %}
+        <div class="order-total">Итого: {{ total|round(2) }} ₽</div>
+
+        {% if order['status'] == 'open' and g.user['role'] == 'waiter' %}
+        <div class="btn-row" style="margin-top:14px;">
+            <form method="post" action="{{ url_for('orders.send_to_kitchen', order_id=order['id']) }}">
+                <button class="btn" type="submit">Отправить на кухню/бар</button>
+            </form>
+        </div>
+        {% endif %}
+        {% if order['status'] in ('sent', 'served') and g.user['role'] == 'waiter' %}
+        <div class="btn-row" style="margin-top:14px;">
+            <form method="post" action="{{ url_for('orders.pay', order_id=order['id']) }}" data-confirm="Подтвердить оплату и закрыть заказ?">
+                <button class="btn btn--success" type="submit">Оплата и закрытие заказа</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if order['status'] == 'open' and g.user['role'] == 'waiter' %}
+    <div class="card">
+        <h3 class="mt-0">Добавить блюдо</h3>
+        <input type="text" id="dish-search" placeholder="Поиск блюда…" style="margin-bottom:12px;">
+        <div class="dish-pick-grid">
+            {% for d in dishes %}
+            <div class="dish-pick" data-name="{{ d['name'] }} {{ d['category_name'] }}">
+                <div class="dish-pick__name">{{ d['name'] }}</div>
+                <div class="dish-pick__price">{{ d['price']|round(2) }} ₽</div>
+                <form method="post" action="{{ url_for('orders.add_item', order_id=order['id']) }}">
+                    <input type="hidden" name="dish_id" value="{{ d['id'] }}">
+                    <input type="number" name="qty" value="1" min="1" style="width:60px; display:inline-block; margin-right:6px;">
+                    <button class="btn btn--sm" data-dish-id="{{ d['id'] }}" type="submit">Добавить</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/orders.js') }}"></script>
+{% endblock %}

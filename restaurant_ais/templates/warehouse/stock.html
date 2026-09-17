@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Склад{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Складские остатки</h1>
+        <p class="subtitle">Товары и ингредиенты, текущее количество на складе</p>
+    </div>
+    {% if g.user['role'] == 'storekeeper' %}
+    <div class="btn-row">
+        <a class="btn btn--secondary" href="{{ url_for('warehouse.movements') }}">Журнал операций</a>
+        <a class="btn" href="{{ url_for('warehouse.new_ingredient') }}">+ Новый товар</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr><th>Наименование</th><th>Ед.</th><th>Остаток</th><th>Мин. остаток</th><th>Статус</th>{% if g.user['role'] == 'storekeeper' %}<th>Операция</th>{% endif %}</tr>
+        </thead>
+        <tbody>
+        {% for i in ingredients %}
+            <tr data-stock="{{ i['stock_qty'] }}" data-min="{{ i['min_qty'] }}">
+                <td>{{ i['name'] }}</td>
+                <td>{{ i['unit'] }}</td>
+                <td>{{ i['stock_qty']|round(2) }}</td>
+                <td>{{ i['min_qty']|round(2) }}</td>
+                <td>
+                    {% if i['stock_qty'] <= i['min_qty'] %}
+                        <span class="badge badge--cancelled">Ниже минимума</span>
+                    {% else %}
+                        <span class="badge badge--free">В норме</span>
+                    {% endif %}
+                </td>
+                {% if g.user['role'] == 'storekeeper' %}
+                <td>
+                    <form method="post" action="{{ url_for('warehouse.movement', ingredient_id=i['id']) }}" class="btn-row">
+                        <select name="reason" style="width:auto;">
+                            <option value="receipt">Приход</option>
+                            <option value="writeoff">Списание</option>
+                            <option value="inventory">Инвентаризация (новый остаток)</option>
+                        </select>
+                        <input type="number" step="0.01" name="qty" placeholder="Кол-во" style="width:100px;" required>
+                        <button class="btn btn--sm" type="submit">Применить</button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+        {% else %}
+            <tr><td colspan="6" class="empty-state">Товары не найдены</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', filename='js/warehouse.js') }}"></script>{% endblock %}

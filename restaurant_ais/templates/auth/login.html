@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Вход — {{ restaurant_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body class="login-page">
+    <div class="login-box">
+        <h1>АИС ресторана «{{ restaurant_name }}»</h1>
+        <p class="subtitle">Войдите под своей учётной записью</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash flash--{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="post">
+            <div class="field">
+                <label for="username">Логин</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            <div class="field">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button class="btn" type="submit">Войти</button>
+        </form>
+        <p class="hint">После первого запуска выполните <code>flask --app app seed-db</code>, чтобы получить демо-доступы.</p>
+    </div>
+</body>
+</html>

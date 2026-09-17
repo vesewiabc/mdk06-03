@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Столы{% endblock %}
+{% block body_attrs %}data-autorefresh="20"{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Схема зала</h1>
+        <p class="subtitle">Вместимость 80 мест · статус столов обновляется автоматически</p>
+    </div>
+</div>
+
+<div class="tables-grid">
+    {% for t in tables %}
+    <div class="table-tile table-tile--{{ t['status'] }}">
+        <div class="table-tile__num">№ {{ t['number'] }}</div>
+        <div class="table-tile__seats">{{ t['seats'] }} мест</div>
+        <span class="badge badge--{{ t['status'] }}">
+            {{ {'free': 'Свободен', 'occupied': 'Занят', 'reserved': 'Бронь'}[t['status']] }}
+        </span>
+        <div style="margin-top:10px;">
+            {% if t['order_id'] %}
+                <a class="btn btn--sm" href="{{ url_for('orders.detail', order_id=t['order_id']) }}">Открыть заказ</a>
+            {% elif g.user['role'] == 'waiter' %}
+                <form method="post" action="{{ url_for('orders.open_order', table_id=t['id']) }}">
+                    <input type="hidden" name="guests" value="{{ t['seats'] }}">
+                    <button class="btn btn--sm btn--success" type="submit">Принять заказ</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
