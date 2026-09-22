@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Техкарта — {{ dish['name'] }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Технологическая карта: {{ dish['name'] }}</h1><p class="subtitle">Цена: {{ dish['price']|round(2) }} ₽</p></div>
+    <a class="btn btn--secondary" href="{{ url_for('dishes.list_dishes') }}">← К меню</a>
+</div>
+
+<div class="grid grid--2">
+    <div class="card">
+        <h3 class="mt-0">Состав на 1 порцию</h3>
+        <table>
+            <thead><tr><th>Ингредиент</th><th>Кол-во</th><th></th></tr></thead>
+            <tbody>
+            {% for c in card %}
+            <tr>
+                <td>{{ c['ingredient_name'] }}</td>
+                <td>{{ c['qty_per_portion']|round(3) }} {{ c['unit'] }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('dishes.remove_tech_card_item', item_id=c['id']) }}" data-confirm="Убрать ингредиент из техкарты?">
+                        <button class="btn btn--sm btn--danger" type="submit">Убрать</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+                <tr><td colspan="3" class="empty-state">Техкарта пока не заполнена</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card">
+        <h3 class="mt-0">Добавить / обновить ингредиент</h3>
+        <form method="post">
+            <div class="field">
+                <label for="ingredient_id">Ингредиент</label>
+                <select id="ingredient_id" name="ingredient_id" required>
+                    {% for i in ingredients %}<option value="{{ i['id'] }}">{{ i['name'] }} ({{ i['unit'] }})</option>{% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label for="qty_per_portion">Расход на 1 порцию</label>
+                <input type="number" step="0.001" id="qty_per_portion" name="qty_per_portion" required>
+            </div>
+            <button class="btn" type="submit">Сохранить</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

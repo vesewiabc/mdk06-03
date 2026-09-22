@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Журнал складских операций{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h1>Журнал складских операций</h1><p class="subtitle">Последние 200 операций</p></div>
+    <a class="btn btn--secondary" href="{{ url_for('warehouse.stock') }}">← К остаткам</a>
+</div>
+<div class="card">
+    <table>
+        <thead><tr><th>Дата</th><th>Товар</th><th>Тип</th><th>Изменение</th><th>Комментарий</th><th>Сотрудник</th></tr></thead>
+        <tbody>
+        {% for m in movements %}
+            <tr>
+                <td>{{ m['created_at'] }}</td>
+                <td>{{ m['ingredient_name'] }}</td>
+                <td>{{ {'receipt': 'Приход', 'writeoff': 'Списание', 'inventory': 'Инвентаризация', 'order': 'Расход по заказу'}[m['reason']] }}</td>
+                <td>{{ '%+.2f'|format(m['qty_change']) }} {{ m['unit'] }}</td>
+                <td>{{ m['comment'] or '—' }}</td>
+                <td>{{ m['user_name'] or '—' }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="6" class="empty-state">Операций пока нет</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Экран бара' if station == 'bar' else 'Экран кухни' }}{% endblock %}
+{% block body_attrs %}data-autorefresh="15"{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ 'Экран бара' if station == 'bar' else 'Экран кухни' }}</h1>
+        <p class="subtitle">Активные позиции в работе · обновляется автоматически</p>
+    </div>
+</div>
+
+<div class="grid grid--3">
+    {% for item in items %}
+    <div class="card">
+        <h3 class="mt-0">{{ item['dish_name'] }} × {{ item['qty'] }}</h3>
+        <p class="text-muted">Заказ №{{ item['order_id'] }} · Стол {{ item['table_number'] or '—' }}</p>
+        {% if item['comment'] %}<p class="text-muted">Комментарий: {{ item['comment'] }}</p>{% endif %}
+        <span class="badge badge--{{ item['status'] }}">
+            {{ {'cooking': 'Готовится', 'ready': 'Готово'}[item['status']] }}
+        </span>
+        <div class="btn-row" style="margin-top:12px;">
+            {% if item['status'] == 'cooking' %}
+            <form method="post" action="{{ url_for('orders.update_item_status', item_id=item['id']) }}">
+                <input type="hidden" name="status" value="ready">
+                <button class="btn btn--sm btn--success" type="submit">Готово</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <p class="empty-state">Нет активных позиций</p>
+    {% endfor %}
+</div>
+{% endblock %}

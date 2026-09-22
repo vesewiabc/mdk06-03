@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}Панель{% endblock %}
+
+{% block content %}
+{% set R = g.user['role'] %}
+
+<div class="page-header">
+    <div>
+        <h1>Добро пожаловать, {{ g.user['full_name'] }}</h1>
+        <p class="subtitle">
+            {{ role_labels.get(g.user['role'], g.user['role']) }} ·
+            АИС ресторана «{{ restaurant_name }}»
+        </p>
+    </div>
+</div>
+
+{# =========================================================
+   KPI-ПАНЕЛЬ — на всю ширину, 4-6 плиток в ряд
+   ========================================================= #}
+<div class="kpi-grid">
+
+    {% if R in ('admin', 'waiter') %}
+    <div class="stat">
+        <div class="stat__label">Столы свободны</div>
+        <div class="stat__value">{{ stats.tables_free }} / {{ stats.tables_total }}</div>
+        <div class="stat__hint">занято: {{ stats.tables_busy }}</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Заказов сегодня</div>
+        <div class="stat__value">{{ stats.orders_today }}</div>
+        <div class="stat__hint">в работе: {{ stats.orders_open }}</div>
+    </div>
+    {% endif %}
+
+    {% if R in ('admin', 'accountant') %}
+    <div class="stat">
+        <div class="stat__label">Выручка сегодня</div>
+        <div class="stat__value">{{ stats.revenue_today|round(2) }} ₽</div>
+        <div class="stat__hint">за 7 дней: {{ stats.revenue_week|round(2) }} ₽</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Заказов сегодня</div>
+        <div class="stat__value">{{ stats.orders_today }}</div>
+        <div class="stat__hint">в работе: {{ stats.orders_open }}</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">ФОТ / месяц</div>
+        <div class="stat__value">{{ stats.payroll_fund|round(0)|int }} ₽</div>
+        <div class="stat__hint">сотрудников: {{ stats.staff_count }}</div>
+    </div>
+    {% endif %}
+
+    {% if R in ('admin', 'storekeeper', 'accountant') %}
+    <div class="stat {{ 'stat--danger' if stats.low_stock_count }}">
+        <div class="stat__label">Товаров ниже минимума</div>
+        <div class="stat__value">{{ stats.low_stock_count }}</div>
+        <div class="stat__hint">заявок в ожидании: {{ stats.requests_pending }}</div>
+    </div>
+    {% endif %}
+
+    {% if R in ('cook', 'bartender') %}
+    <div class="stat">
+        <div class="stat__label">Позиций в работе</div>
+        <div class="stat__value">{{ active_items|length }}</div>
+        <div class="stat__hint">обновляется автоматически</div>
+    </div>
+    {% endif %}
+
+</div>
+
+{# =========================================================
+   БЫСТРЫЕ ДЕЙСТВИЯ — плитки разделов
+   ========================================================= #}
+<h2 class="section-title">Разделы системы</h2>
+
+<div class="tiles-grid">
+
+    {% if R in ('admin', 'waiter') %}
+    <a class="tile" href="{{ url_for('orders.tables') }}">
+        <div class="tile__icon">🍽</div>
+        <div class="tile__title">Столы и заказы</div>
+        <div class="tile__desc">Схема зала, приём и обслуживание заказов</div>
+    </a>
+    {% endif %}
+
+    {% if R in ('admin', 'cook', 'bartender') %}
+    <a class="tile" href="{{ url_for('orders.kitchen_view') }}">
+        <div class="tile__icon">👨‍🍳</div>
+        <div class="tile__title">Кухня / бар</div>
+        <div class="tile__desc">Активные позиции для приготовления</div>
+    </a>
+    {% endif %}
+
+    {% if R in ('admin', 'cook', 'bartender', 'waiter', 'accountant') %}
+    <a class="tile" href="{{ url_for('dishes.list_dishes') }}">
+        <div class="tile__icon">📖</div>
+        <div class="tile__title">Меню и техкарты</div>
+        <div class="tile__desc">Блюда, категории, состав по техкартам</div>
+    </a>
+    {% endif %}
+
+    {% if R in ('admin', 'storekeeper', 'accountant') %}
+    <a class="tile" href="{{ url_for('warehouse.stock') }}">
+        <div class="tile__icon">📦</div>
+        <div class="tile__title">Склад</div>
+        <div class="tile__desc">Остатки, приход, списание, инвентаризация</div>
+    </a>
+    <a class="tile" href="{{ url_for('warehouse.requests_list') }}">
+        <div class="tile__icon">📝</div>
+        <div class="tile__title">Заявки на закупку</div>
+        <div class="tile__desc">Пополнение склада</div>
+    </a>
+    {% endif %}
+
+    {% if R in ('admin', 'accountant') %}
+    <a class="tile" href="{{ url_for('staff.list_employees') }}">
+        <div class="tile__icon">👥</div>
+        <div class="tile__title">Персонал</div>
+        <div class="tile__desc">Сотрудники, ФОТ, график смен</div>
+    </a>
+    <a class="tile" href="{{ url_for('reports.index') }}">
+        <div class="tile__icon">📊</div>
+        <div class="tile__title">Отчётность</div>
+        <div class="tile__desc">Выручка, продажи, топ блюд</div>
+    </a>
+    {% endif %}
+
+    {% if R == 'admin' %}
+    <a class="tile" href="{{ url_for('auth.users') }}">
+        <div class="tile__icon">🔐</div>
+        <div class="tile__title">Пользователи</div>
+        <div class="tile__desc">Учётные записи и роли доступа</div>
+    </a>
+    {% endif %}
+
+</div>
+
+{# =========================================================
+   ДАННЫЕ — 2 колонки на всю ширину
+   ========================================================= #}
+{% if recent_orders or low_stock or top_dishes or active_items %}
+<h2 class="section-title">Оперативная сводка</h2>
+{% endif %}
+
+<div class="dashboard-grid">
+
+    {# --- Последние заказы --- #}
+    {% if recent_orders %}
+    <section class="card">
+        <div class="card-head">
+            <h3 class="mt-0">Последние заказы</h3>
+            <a class="btn btn--sm btn--secondary" href="{{ url_for('orders.tables') }}">Все →</a>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Стол</th>
+                        <th>Официант</th>
+                        <th>Статус</th>
+                        <th class="ta-right">Сумма</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for o in recent_orders %}
+                    <tr>
+                        <td><a href="{{ url_for('orders.detail', order_id=o['id']) }}">#{{ o['id'] }}</a></td>
+                        <td>{{ o['table_number'] or '—' }}</td>
+                        <td class="text-muted">{{ o['waiter_name'] }}</td>
+                        <td>
+                            <span class="badge badge--{{ o['status'] }}">
+                                {{ {'open':'Открыт','sent':'На кухне','served':'Подан',
+                                    'paid':'Оплачен','cancelled':'Отменён'}[o['status']] }}
+                            </span>
+                        </td>
+                        <td class="ta-right cell-price">{{ o['total']|round(2) }} ₽</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    {# --- Низкие остатки --- #}
+    {% if low_stock %}
+    <section class="card">
+        <div class="card-head">
+            <h3 class="mt-0">Требуется закупка</h3>
+            <a class="btn btn--sm btn--secondary"
+               href="{{ url_for('warehouse.requests_list') }}">Все →</a>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Товар</th>
+                        <th class="ta-right">Остаток</th>
+                        <th class="ta-right">Минимум</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for i in low_stock %}
+                    <tr>
+                        <td class="cell-title">{{ i['name'] }}</td>
+                        <td class="ta-right text-danger">{{ i['stock_qty']|round(2) }} {{ i['unit'] }}</td>
+                        <td class="ta-right text-muted">{{ i['min_qty']|round(2) }} {{ i['unit'] }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    {# --- Топ блюд --- #}
+    {% if top_dishes %}
+    <section class="card">
+        <div class="card-head">
+            <h3 class="mt-0">Топ блюд за 7 дней</h3>
+            <a class="btn btn--sm btn--secondary"
+               href="{{ url_for('reports.index') }}">Отчёт →</a>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Блюдо</th>
+                        <th class="ta-right">Продано</th>
+                        <th class="ta-right">Выручка</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for d in top_dishes %}
+                    <tr>
+                        <td class="cell-title">{{ d['name'] }}</td>
+                        <td class="ta-right">{{ d['qty_sold'] }}</td>
+                        <td class="ta-right cell-price">{{ d['revenue']|round(2) }} ₽</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    {# --- Активные позиции кухни/бара --- #}
+    {% if active_items %}
+    <section class="card">
+        <div class="card-head">
+            <h3 class="mt-0">В работе сейчас</h3>
+            <a class="btn btn--sm btn--secondary"
+               href="{{ url_for('orders.kitchen_view') }}">На кухню →</a>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Блюдо</th>
+                        <th>Заказ</th>
+                        <th class="ta-right">Кол-во</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for it in active_items %}
+                    <tr>
+                        <td class="cell-title">{{ it['dish_name'] }}</td>
+                        <td>
+                            #{{ it['order_id'] }}
+                            {% if it['table_number'] %} · стол {{ it['table_number'] }}{% endif %}
+                        </td>
+                        <td class="ta-right">× {{ it['qty'] }}</td>
+                        <td>
+                            <span class="badge badge--{{ it['status'] }}">
+                                {{ {'cooking':'Готовится','ready':'Готово'}[it['status']] }}
+                            </span>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+</div>
+
+{% endblock %}
