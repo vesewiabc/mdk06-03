@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Новый пользователь{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Новый пользователь</h1>
+        <p class="subtitle">Создание учётной записи сотрудника</p>
+    </div>
+    <a class="btn btn--secondary" href="{{ url_for('auth.users') }}">← К пользователям</a>
+</div>
+
+<div class="card" style="max-width:420px;">
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="field">
+            <label for="full_name">ФИО</label>
+            <input type="text" id="full_name" name="full_name"
+                   required maxlength="200" autocomplete="name">
+        </div>
+
+        <div class="field">
+            <label for="username">Логин</label>
+            <input type="text" id="username" name="username"
+                   required maxlength="32"
+                   pattern="[A-Za-z0-9_.\-]{3,32}"
+                   autocomplete="off"
+                   title="3–32 символа: латиница, цифры, «.», «_», «-»">
+        </div>
+
+        <div class="field">
+            <label for="password">Пароль</label>
+            <input type="password" id="password" name="password"
+                   required minlength="8" maxlength="128"
+                   autocomplete="new-password"
+                   title="Минимум 8 символов">
+        </div>
+
+        <div class="field">
+            <label for="role">Роль</label>
+            <select id="role" name="role">
+                {% for code, label in role_labels.items() %}
+                <option value="{{ code }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-actions btn-row">
+            <button class="btn" type="submit">Создать</button>
+            <a class="btn btn--secondary" href="{{ url_for('auth.users') }}">Отмена</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

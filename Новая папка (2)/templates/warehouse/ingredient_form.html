@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Новый товар{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Новый товар на склад</h1>
+        <p class="subtitle">Добавление позиции складского учёта</p>
+    </div>
+    <a class="btn btn--secondary" href="{{ url_for('warehouse.stock') }}">← К остаткам</a>
+</div>
+
+<div class="card" style="max-width:420px;">
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="field">
+            <label for="name">Наименование</label>
+            <input type="text" id="name" name="name" required maxlength="200"
+                   autocomplete="off" placeholder="например, Картофель">
+        </div>
+
+        <div class="field">
+            <label for="unit">Единица измерения</label>
+            <input type="text" id="unit" name="unit" maxlength="20"
+                   placeholder="кг / л / шт" value="кг">
+        </div>
+
+        <div class="field">
+            <label for="stock_qty">Начальный остаток</label>
+            <input type="number" step="0.01" min="0"
+                   id="stock_qty" name="stock_qty" value="0">
+        </div>
+
+        <div class="field">
+            <label for="min_qty">Минимальный остаток</label>
+            <input type="number" step="0.01" min="0"
+                   id="min_qty" name="min_qty" value="0">
+        </div>
+
+        <div class="form-actions btn-row">
+            <button class="btn" type="submit">Добавить</button>
+            <a class="btn btn--secondary" href="{{ url_for('warehouse.stock') }}">Отмена</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

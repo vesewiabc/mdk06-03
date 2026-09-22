@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Заказ №{{ order['id'] }}{% endblock %}
+
+{% block content %}
+
+{% set order_status_labels = {
+    'open': 'Открыт',
+    'sent': 'Передан на кухню',
+    'served': 'Подано',
+    'paid': 'Оплачен',
+    'cancelled': 'Отменён'
+} %}
+{% set item_status_labels = {
+    'new': 'Новая',
+    'cooking': 'Готовится',
+    'ready': 'Готово',
+    'served': 'Подано',
+    'cancelled': 'Отменена'
+} %}
+
+<div class="page-header">
+    <div>
+        <h1>Заказ №{{ order['id'] }} — стол {{ order['table_number'] or '—' }}</h1>
+        <p class="subtitle">
+            Официант: {{ order['waiter_name'] or '—' }} ·
+            Гостей: {{ order['guests'] }} ·
+            Статус:
+            <span class="badge badge--{{ order['status'] }}">
+                {{ order_status_labels.get(order['status'], order['status']) }}
+            </span>
+        </p>
+    </div>
+    <a class="btn btn--secondary" href="{{ url_for('orders.tables') }}">← К схеме зала</a>
+</div>
+
+<div class="grid grid--2">
+
+    {# ================================
+       ЛЕВАЯ КОЛОНКА: ПОЗИЦИИ ЗАКАЗА
+       ================================ #}
+    <div class="card">
+        <h3 class="mt-0">Позиции заказа</h3>
+
+        {% for item in items %}
+        <div class="order-line">
+            <div>
+                <div class="order-line__name">{{ item['dish_name'] }} × {{ item['qty'] }}</div>
+                <div class="order-line__meta">
+                    {{ item['price']|round(2) }} ₽/шт ·
+                    <span class="badge badge--{{ item['status'] }}">
+                        {{ item_status_labels.get(item['status'], item['status']) }}
+                    </span>
+                    {% if item['comment'] %} · {{ item['comment'] }}{% endif %}
+                </div>
+            </div>
+            <div class="btn-row">
+                {% if item['status'] not in ('cancelled', 'served') %}
+
+                    {% if item['status'] == 'ready'
+                          and order['status'] in ('sent', 'served')
+                          and g.user['role'] in ('waiter', 'admin') %}
+                    <form method="post"
+                          action="{{ url_for('orders.update_item_status', item_id=item['id']) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="status" value="served">
+                        <button class="btn btn--sm btn--success" type="submit">Подано</button>
+                    </form>
+                    {% endif %}
+
+                    {% if item['status'] == 'new'
+                          and order['status'] == 'open'
+                          and g.user['role'] in ('waiter', 'admin') %}
+                    <form method="post"
+                          action="{{ url_for('orders.remove_item', item_id=item['id']) }}"
+                          data-confirm="Убрать позицию из заказа?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn--sm btn--danger" type="submit">Убрать</button>
+                    </form>
+                    {% endif %}
+
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <p class="empty-state">В заказе пока нет позиций</p>
+        {% endfor %}
+
+        <div class="order-total">Итого: {{ total|round(2) }} ₽</div>
+
+        {% if order['status'] == 'open' and g.user['role'] == 'waiter' %}
+        <div class="btn-row mt-md">
+            <form method="post"
+                  action="{{ url_for('orders.send_to_kitchen', order_id=order['id']) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn" type="submit">Отправить на кухню/бар</button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if order['status'] in ('sent', 'served') and g.user['role'] == 'waiter' %}
+        <div class="btn-row mt-md">
+            <form method="post"
+                  action="{{ url_for('orders.pay', order_id=order['id']) }}"
+                  data-confirm="Подтвердить оплату и закрыть заказ?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn--success" type="submit">
+                    Оплата и закрытие заказа
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ================================
+       ПРАВАЯ КОЛОНКА: ДОБАВЛЕНИЕ БЛЮД
+       ================================ #}
+    {% if order['status'] == 'open' and g.user['role'] == 'waiter' %}
+    <div class="card">
+        <h3 class="mt-0">Добавить блюдо</h3>
+
+        <input type="text" id="dish-search" placeholder="Поиск блюда…"
+               class="input--search" autocomplete="off">
+
+        <div class="dish-pick-grid">
+            {% for d in dishes %}
+            <div class="dish-pick"
+                 data-name="{{ d['name'] }} {{ d['category_name'] or '' }}">
+                <div class="dish-pick__name">{{ d['name'] }}</div>
+                <div class="dish-pick__price">{{ d['price']|round(2) }} ₽</div>
+
+                <form method="post"
+                      action="{{ url_for('orders.add_item', order_id=order['id']) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="dish_id" value="{{ d['id'] }}">
+                    <input type="number" name="qty" value="1"
+                           min="1" max="99" class="qty-input">
+                    <button class="btn btn--sm" data-dish-id="{{ d['id'] }}" type="submit">
+                        Добавить
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/orders.js') }}" defer></script>
+{% endblock %}

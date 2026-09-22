@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Новое блюдо{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Новое блюдо</h1>
+        <p class="subtitle">Создание позиции меню и переход к техкарте</p>
+    </div>
+    <a class="btn btn--secondary" href="{{ url_for('dishes.list_dishes') }}">← К меню</a>
+</div>
+
+<div class="card" style="max-width:460px;">
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="field">
+            <label for="name">Название</label>
+            <input type="text" id="name" name="name" required maxlength="200">
+        </div>
+
+        <div class="field">
+            <label for="category_id">Категория</label>
+            <select id="category_id" name="category_id">
+                {% for c in categories %}
+                <option value="{{ c['id'] }}">{{ c['name'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="price">Цена, ₽</label>
+            <input type="number" step="0.01" min="0.01" max="1000000"
+                   id="price" name="price" required>
+        </div>
+
+        <div class="field">
+            <label for="station">Станция приготовления</label>
+            <select id="station" name="station">
+                <option value="kitchen">Кухня</option>
+                <option value="bar">Бар</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="description">Описание</label>
+            <textarea id="description" name="description" rows="3" maxlength="1000"></textarea>
+        </div>
+
+        <div class="form-actions btn-row">
+            <button class="btn" type="submit">Создать и указать техкарту</button>
+            <a class="btn btn--secondary" href="{{ url_for('dishes.list_dishes') }}">Отмена</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
