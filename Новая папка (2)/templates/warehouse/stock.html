@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Склад{% endblock %}
+
+{% block content %}
+
+{% set reason_labels = {
+    'receipt': 'Приход',
+    'writeoff': 'Списание',
+    'inventory': 'Инвентаризация'
+} %}
+
+<div class="page-header">
+    <div>
+        <h1>Складские остатки</h1>
+        <p class="subtitle">Товары и ингредиенты, текущее количество на складе</p>
+    </div>
+    {% if g.user['role'] == 'storekeeper' %}
+    <div class="btn-row">
+        <a class="btn btn--secondary" href="{{ url_for('warehouse.movements') }}">Журнал операций</a>
+        <a class="btn" href="{{ url_for('warehouse.new_ingredient') }}">+ Новый товар</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th scope="col">Наименование</th>
+                    <th scope="col">Ед.</th>
+                    <th scope="col" class="ta-right">Остаток</th>
+                    <th scope="col" class="ta-right">Мин. остаток</th>
+                    <th scope="col">Статус</th>
+                    {% if g.user['role'] == 'storekeeper' %}
+                    <th scope="col" class="ta-right">Операция</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+            {% for i in ingredients %}
+                <tr data-stock="{{ i['stock_qty'] }}" data-min="{{ i['min_qty'] }}">
+                    <td class="cell-title">{{ i['name'] }}</td>
+                    <td class="text-muted">{{ i['unit'] }}</td>
+                    <td class="ta-right cell-price">{{ i['stock_qty']|round(2) }}</td>
+                    <td class="ta-right text-muted">{{ i['min_qty']|round(2) }}</td>
+                    <td>
+                        {% if i['stock_qty'] <= i['min_qty'] %}
+                            <span class="badge badge--cancelled">Ниже минимума</span>
+                        {% else %}
+                            <span class="badge badge--free">В норме</span>
+                        {% endif %}
+                    </td>
+
+                    {% if g.user['role'] == 'storekeeper' %}
+                    <td class="ta-right">
+                        <form method="post"
+                              action="{{ url_for('warehouse.movement', ingredient_id=i['id']) }}"
+                              class="btn-row">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <select name="reason" class="input--auto">
+                                {% for code, label in reason_labels.items() %}
+                                <option value="{{ code }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <input type="number" step="0.01" min="0"
+                                   name="qty" placeholder="Кол-во"
+                                   class="input--sm" required>
+                            <button class="btn btn--sm" type="submit">Применить</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="{{ 6 if g.user['role'] == 'storekeeper' else 5 }}"
+                        class="empty-state">Товары не найдены</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/warehouse.js') }}" defer></script>
+{% endblock %}

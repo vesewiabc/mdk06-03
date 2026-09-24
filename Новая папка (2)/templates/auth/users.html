@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Пользователи системы</h1>
+        <p class="subtitle">Учётные записи и роли доступа</p>
+    </div>
+    <a class="btn" href="{{ url_for('auth.new_user') }}">+ Новый пользователь</a>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th scope="col">Логин</th>
+                    <th scope="col">ФИО</th>
+                    <th scope="col">Роль</th>
+                    <th scope="col">Статус</th>
+                    <th scope="col" class="ta-right"></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for u in users %}
+                <tr>
+                    <td class="cell-title">{{ u['username'] }}</td>
+                    <td>{{ u['full_name'] }}</td>
+                    <td>
+                        <span class="badge badge--role">
+                            {{ role_labels.get(u['role'], u['role']) }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if u['is_active'] %}
+                            <span class="badge badge--free">Активен</span>
+                        {% else %}
+                            <span class="badge badge--cancelled">Отключён</span>
+                        {% endif %}
+                    </td>
+                    <td class="ta-right">
+                        {% if u['id'] != g.user['id'] %}
+                        <form method="post"
+                              action="{{ url_for('auth.toggle_user', user_id=u['id']) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button class="btn btn--secondary btn--sm" type="submit">
+                                {{ 'Отключить' if u['is_active'] else 'Включить' }}
+                            </button>
+                        </form>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5" class="empty-state">Пользователи не найдены</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

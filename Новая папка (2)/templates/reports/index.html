@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Отчётность{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>Финансовая отчётность</h1>
+        <p class="subtitle">Выручка, продажи, топ блюд и состояние склада</p>
+    </div>
+</div>
+
+{# ---------- Фильтр периода ---------- #}
+<div class="card">
+    <form method="get" class="btn-row filter-row">
+        <div class="field field--flush">
+            <label for="date_from">С</label>
+            <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+        </div>
+        <div class="field field--flush">
+            <label for="date_to">По</label>
+            <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
+        </div>
+        <button class="btn" type="submit">Сформировать</button>
+    </form>
+</div>
+
+{# ---------- KPI ---------- #}
+<div class="kpi-grid">
+    <div class="stat">
+        <div class="stat__label">Выручка за период</div>
+        <div class="stat__value">{{ revenue_row['revenue']|round(2) }} ₽</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Оплаченных заказов</div>
+        <div class="stat__value">{{ revenue_row['orders_count'] }}</div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">Средний чек</div>
+        <div class="stat__value">
+            {% if revenue_row['orders_count'] %}
+                {{ (revenue_row['revenue'] / revenue_row['orders_count'])|round(2) }}
+            {% else %}0{% endif %} ₽
+        </div>
+    </div>
+    <div class="stat">
+        <div class="stat__label">ФОТ / месяц</div>
+        <div class="stat__value">{{ payroll['total']|round(0)|int }} ₽</div>
+    </div>
+</div>
+
+{# ---------- Диаграммы ---------- #}
+<div class="grid grid--2">
+    <section class="card">
+        <h3 class="mt-0">Топ блюд по выручке</h3>
+        <div class="donut-wrap">
+            <div class="donut-canvas-box">
+                <canvas id="chart-donut"></canvas>
+            </div>
+            <div id="chart-donut-legend" class="donut-legend"></div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h3 class="mt-0">Выручка по дням</h3>
+        <div class="bar-canvas-box">
+            <canvas id="chart-bar"></canvas>
+        </div>
+    </section>
+</div>
+
+{# ---------- Таблицы ---------- #}
+<div class="grid grid--2">
+    <section class="card">
+        <h3 class="mt-0">Детализация по блюдам</h3>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Блюдо</th>
+                        <th scope="col" class="ta-right">Продано</th>
+                        <th scope="col" class="ta-right">Выручка</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for d in top_dishes %}
+                    <tr>
+                        <td class="cell-title">{{ d['name'] }}</td>
+                        <td class="ta-right">{{ d['qty_sold'] }}</td>
+                        <td class="ta-right cell-price">{{ d['revenue']|round(2) }} ₽</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="3" class="empty-state">Нет данных за период</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <h3 class="mt-0">Товары ниже минимального остатка</h3>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Товар</th>
+                        <th scope="col" class="ta-right">Остаток</th>
+                        <th scope="col" class="ta-right">Минимум</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for i in low_stock %}
+                    <tr>
+                        <td class="cell-title">{{ i['name'] }}</td>
+                        <td class="ta-right text-danger">
+                            {{ i['stock_qty']|round(2) }} {{ i['unit'] }}
+                        </td>
+                        <td class="ta-right text-muted">
+                            {{ i['min_qty']|round(2) }} {{ i['unit'] }}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="3" class="empty-state">Все остатки в норме</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+{# ---------- Данные для графиков ---------- #}
+<script type="application/json" id="chart-data">
+{
+    "donut": [
+        {% for d in top_dishes %}
+        { "label": {{ d['name']|tojson }}, "value": {{ d['revenue'] }}, "qty": {{ d['qty_sold'] }} }{{ ',' if not loop.last }}
+        {% endfor %}
+    ],
+    "bar": [
+        {% for d in daily_revenue %}
+        { "label": {{ d['day']|tojson }}, "value": {{ d['revenue'] }} }{{ ',' if not loop.last }}
+        {% endfor %}
+    ]
+}
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/reports.js') }}" defer></script>
+{% endblock %}

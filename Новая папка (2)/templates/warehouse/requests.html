@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Заявки на пополнение{% endblock %}
+
+{% block content %}
+
+{% set request_status_labels = {
+    'new': 'Новая',
+    'approved': 'Одобрена',
+    'done': 'Выполнена',
+    'rejected': 'Отклонена'
+} %}
+
+{% set can_manage = g.user['role'] in ('storekeeper', 'accountant') %}
+{% set can_order  = g.user['role'] == 'storekeeper' %}
+
+<div class="page-header">
+    <div>
+        <h1>Заявки на пополнение склада</h1>
+        <p class="subtitle">Позиции ниже минимума и история заявок</p>
+    </div>
+    <a class="btn btn--secondary" href="{{ url_for('warehouse.stock') }}">← К остаткам</a>
+</div>
+
+{% if low_stock %}
+<div class="card">
+    <div class="card-head">
+        <h3 class="mt-0">Товары ниже минимального остатка</h3>
+        <span class="text-muted">{{ low_stock|length }} поз.</span>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th scope="col">Товар</th>
+                    <th scope="col" class="ta-right">Остаток</th>
+                    <th scope="col" class="ta-right">Минимум</th>
+                    <th scope="col" class="ta-right">Дефицит</th>
+                    {% if can_order %}
+                    <th scope="col" class="ta-right">Заявка</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+            {% for i in low_stock %}
+                {% set deficit = (i['min_qty'] - i['stock_qty']) %}
+                {% set suggested = (i['min_qty'] * 2 - i['stock_qty']) %}
+                <tr data-stock="{{ i['stock_qty'] }}" data-min="{{ i['min_qty'] }}">
+                    <td class="cell-title">{{ i['name'] }}</td>
+                    <td class="ta-right text-danger">
+                        {{ i['stock_qty']|round(2) }} {{ i['unit'] }}
+                    </td>
+                    <td class="ta-right text-muted">
+                        {{ i['min_qty']|round(2) }} {{ i['unit'] }}
+                    </td>
+                    <td class="ta-right text-danger">
+                        −{{ deficit|round(2) }} {{ i['unit'] }}
+                    </td>
+
+                    {% if can_order %}
+                    <td class="ta-right">
+                        <form method="post"
+                              action="{{ url_for('warehouse.new_request') }}"
+                              class="btn-row btn-row--end">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="ingredient_id" value="{{ i['id'] }}">
+                            <input type="number"
+                                   step="0.01"
+                                   min="0.01"
+                                   name="qty"
+                                   placeholder="Кол-во"
+                                   class="input--sm"
+                                   value="{{ suggested|round(2) }}"
+                                   required>
+                            <button class="btn btn--sm" type="submit">Заказать</button>
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card empty-state">
+    <p>Все остатки в норме — заявок не требуется.</p>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-head">
+        <h3 class="mt-0">История заявок</h3>
+        <span class="text-muted">{{ requests|length }} шт.</span>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th scope="col">Дата</th>
+                    <th scope="col">Товар</th>
+                    <th scope="col" class="ta-right">Кол-во</th>
+                    <th scope="col">Статус</th>
+                    {% if can_manage %}
+                    <th scope="col" class="ta-right">Действие</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in requests %}
+                <tr>
+                    <td class="text-muted nowrap">{{ r['created_at'] }}</td>
+                    <td class="cell-title">{{ r['ingredient_name'] }}</td>
+                    <td class="ta-right cell-price">
+                        {{ r['qty']|round(2) }} {{ r['unit'] }}
+                    </td>
+                    <td>
+                        <span class="badge badge--{{ r['status'] }}">
+                            {{ request_status_labels.get(r['status'], r['status']) }}
+                        </span>
+                    </td>
+
+                    {% if can_manage %}
+                    <td class="ta-right">
+                        {% if r['status'] not in ('done', 'rejected') %}
+                        <div class="btn-row btn-row--end">
+                            <form method="post"
+                                  action="{{ url_for('warehouse.update_request_status', request_id=r['id']) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="status" value="approved">
+                                <button class="btn btn--sm btn--secondary" type="submit">
+                                    Одобрить
+                                </button>
+                            </form>
+                            <form method="post"
+                                  action="{{ url_for('warehouse.update_request_status', request_id=r['id']) }}"
+                                  data-confirm="Отметить заявку как выполненную?">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="status" value="done">
+                                <button class="btn btn--sm btn--success" type="submit">
+                                    Выполнена
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="{{ 5 if can_manage else 4 }}"
+                        class="empty-state">Заявок нет</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

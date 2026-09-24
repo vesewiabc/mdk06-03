@@ -1,0 +1,257 @@
+/* =========================================================
+   Страница входа — отдельная тема (без sidebar)
+   Холодный синий градиент + голубой акцент.
+   ========================================================= */
+@import url("variables.css");
+
+/* Единый box-sizing — ключ к ровной вёрстке полей */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body.login-page {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-sans);
+    font-size: var(--fs-md);
+    line-height: var(--lh-base);
+    color: var(--color-text);
+    background:
+        radial-gradient(900px 500px at 50% -10%, rgba(47, 111, 176, .25), transparent 60%),
+        radial-gradient(700px 400px at 90% 100%, rgba(47, 122, 74, .10), transparent 60%),
+        linear-gradient(180deg, #0f1a26 0%, #16273a 60%, #0b131c 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.login-shell {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* ---------- Логотип ---------- */
+.login-brand {
+    text-align: center;
+    color: #d8e2ee;
+}
+.login-brand__logo {
+    display: block;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: .5px;
+    color: #fff;
+}
+.login-brand__logo span {
+    color: #6fb6e8;
+    font-weight: 500;
+}
+.login-brand__tagline {
+    display: block;
+    font-size: var(--fs-sm);
+    color: #8ea1b8;
+    margin-top: 4px;
+}
+
+/* ---------- Карточка входа ---------- */
+.login-box {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 28px 26px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, .35), 0 4px 10px rgba(0, 0, 0, .25);
+}
+
+.login-box h1 {
+    margin: 0 0 6px;
+    font-size: var(--fs-xl);
+    line-height: var(--lh-tight);
+}
+.login-box .subtitle {
+    margin: 0 0 20px;
+    color: var(--color-muted);
+    font-size: var(--fs-sm);
+    line-height: 1.4;
+}
+
+/* =========================================================
+   ФОРМА
+   ========================================================= */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+}
+
+.login-box .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    margin: 0;               /* отступы задаёт gap у .login-form */
+}
+
+.login-box .field > label {
+    display: block;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--color-muted);
+    line-height: 1.2;
+}
+
+.login-box input[type="text"],
+.login-box input[type="password"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: var(--fs-md);
+    line-height: 1.35;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    -webkit-appearance: none;
+    appearance: none;
+}
+.login-box input::placeholder {
+    color: var(--color-subtle);
+}
+.login-box input:hover { border-color: var(--color-primary); }
+.login-box input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+}
+
+/* Кнопка «Войти» — на всю ширину, ровно как поля */
+.login-box .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 11px 16px;
+    margin-top: 4px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: var(--color-primary);
+    color: #fff;
+    font-family: inherit;
+    font-size: var(--fs-md);
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+.login-box .btn:hover { background: var(--color-primary-hover); }
+.login-box .btn:active { background: var(--color-primary-active); }
+
+/* =========================================================
+   FLASH
+   ========================================================= */
+.login-box .flash {
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border-left: 4px solid var(--color-info);
+    background: var(--color-info-soft);
+    color: var(--color-info-ink);
+    margin-bottom: 14px;
+    font-size: var(--fs-sm);
+    line-height: 1.4;
+}
+.login-box .flash--success {
+    border-left-color: var(--color-success);
+    background: var(--color-success-soft);
+    color: var(--color-success-ink);
+}
+.login-box .flash--error {
+    border-left-color: var(--color-danger);
+    background: var(--color-danger-soft);
+    color: var(--color-danger-ink);
+}
+.login-box .flash--warning {
+    border-left-color: var(--color-warning);
+    background: var(--color-warning-soft);
+    color: var(--color-warning-ink);
+}
+
+/* =========================================================
+   ДЕМО-ДОСТУПЫ
+   ========================================================= */
+.demo {
+    margin-top: 22px;
+    padding: 12px 14px;
+    background: var(--color-surface-3);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-sm);
+}
+.demo summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-primary-ink);
+    padding: 2px 0;
+    list-style: none;
+}
+.demo summary::-webkit-details-marker { display: none; }
+.demo summary::before {
+    content: "▸ ";
+    display: inline-block;
+    transition: transform var(--transition);
+    margin-right: 4px;
+}
+.demo[open] summary::before { transform: rotate(90deg); }
+
+.demo__table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: var(--fs-xs);
+}
+.demo__table th,
+.demo__table td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--color-border);
+}
+.demo__table th {
+    color: var(--color-muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: .4px;
+    font-weight: 700;
+}
+.demo__table tr[data-login] { cursor: pointer; transition: background var(--transition); }
+.demo__table tr[data-login]:hover { background: var(--color-surface); }
+.demo__table code {
+    background: var(--color-surface);
+    padding: 1px 6px;
+    border-radius: var(--radius-xs);
+    font-size: var(--fs-xs);
+}
+.demo__note {
+    margin: 10px 0 0;
+    font-size: 11px;
+    color: var(--color-muted);
+    line-height: 1.5;
+}
+.demo__note code {
+    background: var(--color-surface);
+    padding: 1px 5px;
+    border-radius: var(--radius-xs);
+}
+
+/* ---------- Футер ---------- */
+.login-footer {
+    text-align: center;
+    color: #7e8ea3;
+    font-size: var(--fs-xs);
+    margin: 0;
+}
