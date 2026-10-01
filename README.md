@@ -13,6 +13,7 @@
 [Архитектура](#-архитектура) •
 [Безопасность](#-безопасность) •
 [Развёртывание](#-развёртывание) •
+[Обслуживание](#-обслуживание) •
 [Документация](#-документация)
 
 ---
@@ -78,6 +79,11 @@
 - **SQL-консоль** — только `SELECT`/`WITH`, read-only соединение
 - Просмотр таблиц БД с пагинацией
 
+### 🩺 Служебное
+- Эндпоинт **`/healthz`** для liveness-проб (Kubernetes, nginx upstream, Uptime Kuma)
+- Логи в stdout и в `instance/gurman.log` с ротацией (`RotatingFileHandler`, 5 × 5 МБ)
+- **Аудит** всех действий в БД (`audit_log`)
+
 ### 🎨 Интерфейс
 - Тёмно-синий сайдбар, холодная голубая палитра
 - CSS-переменные (единый источник правды)
@@ -112,13 +118,13 @@ source venv/bin/activate
 # Windows
 venv\Scripts\activate
 
-# 3. Зависимости
+# 3. Runtime-зависимости
 pip install -r requirements.txt
 
-# 3a. Для запуска тестов (опционально)
+# 3a. Для запуска тестов и линтеров (опционально)
 pip install -r requirements-dev.txt
 
-# 4. SECRET_KEY (обязательно)
+# 4. SECRET_KEY (обязательно в production)
 python -c "import secrets; print(secrets.token_hex(32))"
 # → положить в переменную окружения SECRET_KEY
 
@@ -135,9 +141,16 @@ python app.py
 ### Тесты
 
 ```bash
-pytest                    # все тесты
-pytest -m "not slow"      # без медленных (rate-limit)
-pytest --cov=. --cov-report=term-missing
+pytest                                # все тесты
+pytest -m "not slow"                  # без медленных (rate-limit)
+pytest --cov=. --cov-report=term-missing   # покрытие
+```
+
+### Линтеры
+
+```bash
+ruff check .       # статический анализ
+black --check .    # проверка форматирования
 ```
 
 ### Демо-доступы
@@ -168,8 +181,8 @@ pytest --cov=. --cov-report=term-missing
 | `waiter` | Столы и заказы, меню (просмотр) |
 | `cook` | Кухня, меню и техкарты, категории |
 | `bartender` | Бар, меню (просмотр) |
-| `storekeeper` | Склад, заявки на пополнение |
-| `accountant` | Отчётность, персонал, график, склад (просмотр) |
+| `storekeeper` | Склад, заявки на пополнение (создание и управление) |
+| `accountant` | Отчётность, персонал и график, склад (просмотр), заявки (одобрение/выполнение) |
 
 Администратор имеет доступ ко всем разделам независимо от роли.
 
@@ -178,14 +191,15 @@ pytest --cov=. --cov-report=term-missing
 ## 🏗 Архитектура
 
 ```
-app.py                      Фабрика приложения + строгие проверки ENV
+app.py                      Фабрика приложения + строгие проверки ENV,
+                            настройка логирования, health-check
   ↓
 blueprints/                 8 blueprint'ов (auth, orders, warehouse,
                             dishes, staff, reports, admin, dashboard)
   ↓
 db.py                       SQLite: get_db(), схема, миграции, seed
-  ↓
 utils.py                    Безопасный парсинг, пароли, аудит, декораторы
+passwords.py                Единая точка хеширования паролей
 security.py                 Заголовки безопасности + обработчики ошибок
 rate_limit.py               Rate limiter (SQLite, общий для воркеров)
 ```
@@ -194,9 +208,10 @@ rate_limit.py               Rate limiter (SQLite, общий для воркер
 
 | Файл | Назначение |
 |---|---|
-| `app.py` | Фабрика, регистрация blueprint'ов, проверки production |
+| `app.py` | Фабрика, регистрация blueprint'ов, проверки production, логирование, `/healthz` |
 | `config.py` | Конфигурация из ENV, роли, регулярки, политика паролей |
 | `db.py` | Соединение, схема (13 таблиц), миграции, seed, CLI-команды |
+| `passwords.py` | `hash_password()` — PBKDF2-SHA256, единая точка хеширования |
 | `utils.py` | `safe_float`, `safe_int`, `password_ok`, `is_safe_url`, `log_action`, декораторы `login_required` / `roles_required` |
 | `security.py` | CSP, HSTS, X-Frame-Options, обработчики 404/405/413/500/CSRF |
 | `rate_limit.py` | SQLite-хранилище попыток входа, блокировка по IP и по (IP, username) |
@@ -246,7 +261,7 @@ rate_limit.py               Rate limiter (SQLite, общий для воркер
 
 ## 🔒 Безопасность
 
-- **Пароли:** PBKDF2-SHA256, 600 000 итераций
+- **Пароли:** PBKDF2-SHA256, 600 000 итераций (единая точка — `passwords.hash_password`)
 - **Политика паролей:** минимум 12 символов, буква + цифра, отсев
   распространённых, проверка на логин/ФИО, проверка тривиальных
   последовательностей (`abcdef`, `123456`)
@@ -256,6 +271,9 @@ rate_limit.py               Rate limiter (SQLite, общий для воркер
   воркерах gunicorn/uwsgi
 - **Timing-attack защита:** при несуществующем логине проверяется
   «dummy hash», время ответа не отличается
+- **User enumeration:** единое сообщение «Неверный логин или пароль»
+  для несуществующего логина, неверного пароля и отключённой учётки.
+  Хеш проверяется всегда — включая отключённые учётки и пустой пароль.
 - **Session version:** смена пароля / отключение пользователя инвалидирует
   все активные сессии (через `session_version`)
 - **Заголовки:** CSP, HSTS (при HTTPS), X-Frame-Options: DENY,
@@ -266,8 +284,8 @@ rate_limit.py               Rate limiter (SQLite, общий для воркер
 - **SQL-консоль:** отдельное read-only соединение (`mode=ro` +
   `PRAGMA query_only = ON`) — даже при обходе blacklist'а БД изменить нельзя
 - **Проверки production:** приложение не стартует, если
-  `SESSION_COOKIE_SECURE=0`, `SHOW_DEMO_ACCOUNTS=1`, `DEBUG=1`
-  или `SECRET_KEY` короткий/слабый
+  `SESSION_COOKIE_SECURE=0`, `SHOW_DEMO_ACCOUNTS=1`, `DEBUG=1`,
+  `SECRET_KEY` не задан явно через ENV или короче 32 символов
 
 > 📄 Полная модель угроз, границы доверия и критические инварианты —
 > в [SECURITY.md](SECURITY.md).
@@ -279,7 +297,7 @@ rate_limit.py               Rate limiter (SQLite, общий для воркер
 | Переменная | По умолчанию | Описание |
 |---|---|---|
 | `SECRET_KEY` | генерируется в dev | Обязательно в production, ≥32 символа |
-| `ENVIRONMENT` | — | `production` включает строгие проверки |
+| `FLASK_ENV` / `APP_ENV` | — | `production` включает строгие проверки |
 | `DEBUG` | `0` | `1` — режим отладки Flask |
 | `SESSION_COOKIE_SECURE` | `0` | `1` — только HTTPS, включает HSTS |
 | `TRUSTED_PROXIES` | `0` | Количество доверенных прокси (X-Forwarded-For) |
@@ -312,6 +330,11 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    location /healthz {
+        proxy_pass http://127.0.0.1:5067;
+        access_log off;
+    }
+
     location /static/ {
         alias /var/www/gurman/static/;
         expires 1y;
@@ -322,8 +345,9 @@ server {
 
 ### Обязательно в production
 
-- [ ] `SECRET_KEY` — задать явно (иначе сессии сбрасываются при рестарте)
-- [ ] `ENVIRONMENT=production`
+- [ ] `SECRET_KEY` — задать явно (иначе сессии сбрасываются при рестарте;
+      в production приложение откажется стартовать без него)
+- [ ] `FLASK_ENV=production`
 - [ ] `SESSION_COOKIE_SECURE=1` + HTTPS
 - [ ] `TRUSTED_PROXIES=1` при работе за nginx (иначе rate limiter и
       аудит будут видеть IP прокси, а не клиента)
@@ -342,14 +366,66 @@ flask --app app seed-db        # заполнить демо-данными
 
 ---
 
+## 🧹 Обслуживание
+
+### Health-check
+
+Эндпоинт `GET /healthz` (без аутентификации) возвращает:
+
+```json
+{"status": "ok"}     // 200 — БД доступна
+{"status": "fail"}   // 503 — БД недоступна
+```
+
+Подходит для Kubernetes `livenessProbe`, nginx upstream health-check,
+Uptime Kuma, systemd watchdog. Секретов и версий не раскрывает.
+
+### Ротация логов приложения
+
+`instance/gurman.log` ротируется автоматически
+(`RotatingFileHandler`, 5 файлов по 5 МБ: `gurman.log.1` … `gurman.log.5`).
+Стандартный stdout уходит в journald / docker logs.
+
+### Ротация `audit_log`
+
+Таблица `audit_log` пишется без автоматической очистки. На реальной
+нагрузке (~10 000 событий/мес) файл `restaurant.db` растёт примерно
+на 5–10 МБ в год, но при отладке с автообновлением страниц — быстрее.
+
+Рекомендуемая политика:
+
+```bash
+# 1. Бэкап перед ротацией
+sqlite3 restaurant.db ".backup 'audit-$(date +%Y%m%d).db'"
+
+# 2. Удаление старых записей (старше 1 года) + сжатие БД
+sqlite3 restaurant.db <<'SQL'
+DELETE FROM audit_log WHERE created_at < datetime('now', '-1 year');
+VACUUM;
+SQL
+```
+
+Расписание — cron / systemd timer, раз в месяц.
+
+### Бэкапы
+
+- `restaurant.db` — единственный источник правды. Бэкапить целиком
+  (`.backup` или копирование с остановленным приложением).
+- `instance/admin_bootstrap_password.txt` — удалять после первого входа.
+- Логи (`instance/gurman.log*`) — по желанию, срок хранения определяется
+  политикой.
+
+---
+
 ## 📁 Структура проекта
 
 ```
 gurman/
-├── app.py                     # Фабрика приложения
+├── app.py                     # Фабрика, логирование, /healthz
 ├── config.py                  # Конфигурация и константы
 ├── db.py                      # SQLite, схема, миграции, seed
 ├── extensions.py              # CSRFProtect и др.
+├── passwords.py               # Единая точка хеширования паролей
 ├── security.py                # Headers + error handlers
 ├── rate_limit.py              # Rate limiter (SQLite)
 ├── utils.py                   # Утилиты, декораторы, аудит
@@ -412,7 +488,7 @@ gurman/
 │       ├── reports.js         # Canvas-диаграммы
 │       └── warehouse.js       # Подсветка низких остатков
 │
-├── instance/                  # Инстанс-специфичные файлы (bootstrap-пароль)
+├── instance/                  # Инстанс-специфичные файлы (bootstrap-пароль, логи)
 ├── restaurant.db              # SQLite (создаётся автоматически)
 │
 ├── tests/                     # pytest-тесты
@@ -451,11 +527,32 @@ gurman/
 
 ---
 
+## 🧭 Что НЕ реализовано из ТЗ
+
+Осознанные границы проекта, а не забытые фичи.
+
+- **Бронирование столов.** Есть статус `reserved` в схеме, но нет UI
+  и бизнес-логики для установки брони. Стол можно перевести в `reserved`
+  только вручную через SQL-консоль.
+- **Доставка.** Модуль работает только с залом: модель `orders` привязана
+  к `restaurant_tables`. Доставка/самовывоз не поддерживаются.
+- **Складской учёт по партиям (FIFO/FEFO).** Хранится только суммарный
+  остаток в `ingredients.stock_qty` без сроков годности.
+- **Экспорт отчётов в Excel/PDF.** Графики на Canvas, данные — в HTML.
+- **Мультиязычность.** Интерфейс только на русском.
+- **Планировщик смен с автоматическим распределением.** Смены добавляются
+  вручную, есть только проверка пересечений.
+- **Уведомления (email / SMS / push).** Не реализованы.
+- **Резервное копирование.** Реализуется на уровне ОС/скриптов, не в
+  приложении. См. раздел [Обслуживание](#-обслуживание).
+
+---
+
 ## 📚 Документация
 
 | Документ | О чём |
 |---|---|
-| [README.md](README.md) | Обзор, быстрый старт, роли, развёртывание (этот файл) |
+| [README.md](README.md) | Обзор, быстрый старт, роли, развёртывание, обслуживание (этот файл) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Слои и правила зависимостей, транзакционные границы, миграции, decision log |
 | [SECURITY.md](SECURITY.md) | Модель угроз, границы доверия, критические инварианты, границы применимости |
 
@@ -464,6 +561,13 @@ gurman/
 ```bash
 pytest tests/test_security_sql.py -v
 pytest -m "not slow" --cov=. --cov-report=term-missing
+```
+
+Аудит зависимостей на известные CVE:
+
+```bash
+pip install pip-audit
+pip-audit
 ```
 
 ---
