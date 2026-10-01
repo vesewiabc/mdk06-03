@@ -1,9 +1,0 @@
-{% extends "base.html" %}
-{% block title %}{{ title }}{% endblock %}
-{% block content %}
-<div class="card empty-state">
-    <h2>{{ title }}</h2>
-    <p class="text-muted">{{ message }}</p>
-    <p><a class="btn" href="{{ url_for('index') }}">На главную</a></p>
-</div>
-{% endblock %}
