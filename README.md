@@ -12,7 +12,8 @@
 [Роли](#-роли-и-доступы) •
 [Архитектура](#-архитектура) •
 [Безопасность](#-безопасность) •
-[Развёртывание](#-развёртывание)
+[Развёртывание](#-развёртывание) •
+[Документация](#-документация)
 
 ---
 
@@ -112,7 +113,10 @@ source venv/bin/activate
 venv\Scripts\activate
 
 # 3. Зависимости
-pip install flask flask-wtf werkzeug
+pip install -r requirements.txt
+
+# 3a. Для запуска тестов (опционально)
+pip install -r requirements-dev.txt
 
 # 4. SECRET_KEY (обязательно)
 python -c "import secrets; print(secrets.token_hex(32))"
@@ -127,6 +131,14 @@ python app.py
 При первом запуске автоматически создаётся `restaurant.db`, применяется
 схема и выполняется сидирование справочников (столы, категории,
 ингредиенты, блюда, техкарты).
+
+### Тесты
+
+```bash
+pytest                    # все тесты
+pytest -m "not slow"      # без медленных (rate-limit)
+pytest --cov=. --cov-report=term-missing
+```
 
 ### Демо-доступы
 
@@ -227,6 +239,9 @@ rate_limit.py               Rate limiter (SQLite, общий для воркер
 Все внешние ключи включены (`PRAGMA foreign_keys = ON`), режим WAL,
 `busy_timeout = 5000`. Есть идемпотентные миграции по белому списку.
 
+> 📐 Слои и правила зависимостей, транзакционные границы, миграции и
+> журнал архитектурных решений — в [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ---
 
 ## 🔒 Безопасность
@@ -253,6 +268,9 @@ rate_limit.py               Rate limiter (SQLite, общий для воркер
 - **Проверки production:** приложение не стартует, если
   `SESSION_COOKIE_SECURE=0`, `SHOW_DEMO_ACCOUNTS=1`, `DEBUG=1`
   или `SECRET_KEY` короткий/слабый
+
+> 📄 Полная модель угроз, границы доверия и критические инварианты —
+> в [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -396,7 +414,24 @@ gurman/
 │
 ├── instance/                  # Инстанс-специфичные файлы (bootstrap-пароль)
 ├── restaurant.db              # SQLite (создаётся автоматически)
-└── README.md
+│
+├── tests/                     # pytest-тесты
+│   ├── __init__.py
+│   ├── conftest.py            # Фикстуры (app, client, db, login)
+│   ├── test_utils.py          # Утилиты: парсинг, пароли, безопасные URL
+│   ├── test_auth.py           # Вход, rate-limit, смена пароля, аудит
+│   ├── test_orders.py         # Жизненный цикл заказа
+│   ├── test_warehouse.py      # Склад и заявки
+│   └── test_security_sql.py   # SQL-консоль, headers, CSRF
+│
+├── pytest.ini                 # Конфигурация pytest
+├── pyproject.toml             # Конфигурация ruff / black / coverage
+├── requirements.txt           # Runtime-зависимости
+├── requirements-dev.txt       # + pytest, ruff, black
+│
+├── README.md                  # Обзор и быстрый старт (этот файл)
+├── ARCHITECTURE.md            # Слои, транзакции, decision log
+└── SECURITY.md                # Модель угроз и инварианты
 ```
 
 ---
@@ -413,6 +448,23 @@ gurman/
   блокируется на 8 секунд (страховка от зависших запросов)
 - **Подтверждения** — `data-confirm="Текст?"` на форме
 - **Живые часы** — в топбаре, обновляются раз в 20 секунд
+
+---
+
+## 📚 Документация
+
+| Документ | О чём |
+|---|---|
+| [README.md](README.md) | Обзор, быстрый старт, роли, развёртывание (этот файл) |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Слои и правила зависимостей, транзакционные границы, миграции, decision log |
+| [SECURITY.md](SECURITY.md) | Модель угроз, границы доверия, критические инварианты, границы применимости |
+
+Проверки безопасности воспроизводятся точечно:
+
+```bash
+pytest tests/test_security_sql.py -v
+pytest -m "not slow" --cov=. --cov-report=term-missing
+```
 
 ---
 
