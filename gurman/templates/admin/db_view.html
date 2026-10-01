@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Таблица {{ table }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Таблица: <code>{{ table }}</code></h1>
+        <p class="subtitle">Всего записей: {{ total }}</p>
+    </div>
+    <div class="btn-row">
+        <a class="btn btn--secondary" href="{{ url_for('admin.db_tables') }}">← К таблицам</a>
+        <a class="btn" href="{{ url_for('admin.db_query') }}">SQL-консоль</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    {% for c in columns %}
+                    <th scope="col">{{ c['name'] }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+                <tr>
+                    {% for c in columns %}
+                        {% set val = row[c['name']] %}
+                        <td class="nowrap">
+                            {% if val is none %}
+                                <span class="text-muted">NULL</span>
+                            {% else %}
+                                {{ val }}
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% else %}
+                <tr><td colspan="{{ columns|length }}" class="empty-state">Нет данных</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if pages > 1 %}
+    <div class="btn-row mt-md">
+        {% if page > 1 %}
+        <a class="btn btn--secondary btn--sm"
+           href="{{ url_for('admin.db_view', table=table, page=page-1) }}">← Назад</a>
+        {% endif %}
+        <span class="text-muted">Стр. {{ page }} из {{ pages }}</span>
+        {% if page < pages %}
+        <a class="btn btn--secondary btn--sm"
+           href="{{ url_for('admin.db_view', table=table, page=page+1) }}">Вперёд →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

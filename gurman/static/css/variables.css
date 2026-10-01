@@ -1,0 +1,95 @@
+/* =========================================================
+   Токены дизайна: цвета, тени, радиусы, шрифты
+   Единственный источник правды. Меняете здесь — меняется везде.
+   Палитра: спокойный голубой (brand), холодные серо-синие поверхности.
+   ========================================================= */
+:root {
+    /* ---------- Поверхности ---------- */
+    --color-bg:            #f4f6f9;
+    --color-surface:       #ffffff;
+    --color-surface-2:     #f8fafc;
+    --color-surface-3:     #eef2f7;
+    --color-border:        #dde4ec;
+    --color-border-strong: #c8d2de;
+
+    /* ---------- Текст ---------- */
+    --color-text:    #1a2430;
+    --color-muted:   #65758a;
+    --color-subtle:  #94a2b5;
+    --color-inverse: #ffffff;
+
+    /* ---------- Бренд (спокойный голубой) ---------- */
+    --color-primary:        #2f6fb0;
+    --color-primary-hover:  #245a95;
+    --color-primary-active: #1d4a7c;
+    --color-primary-soft:   #e3eefa;
+    --color-primary-ink:    #173b5e;
+
+    /* ---------- Семантика ---------- */
+    --color-success:      #2f7a4a;
+    --color-success-soft: #e6f3ea;
+    --color-success-ink:  #1e5a33;
+
+    --color-danger:       #b8342f;
+    --color-danger-soft:  #fbe9e7;
+    --color-danger-ink:   #7a1f1c;
+
+    --color-warning:      #a8730a;
+    --color-warning-soft: #fdf3dc;
+    --color-warning-ink:  #6f4d04;
+
+    --color-info:         #2c5d8a;
+    --color-info-soft:    #e6eff7;
+    --color-info-ink:     #1d3f5e;
+
+    --color-neutral-soft: #e9eef4;
+    --color-neutral-ink:  #4e5b6c;
+
+    /* ---------- Радиусы ---------- */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius:    10px;
+    --radius-lg: 14px;
+    --radius-pill: 999px;
+
+    /* ---------- Тени ---------- */
+    --shadow-sm: 0 1px 2px rgba(15, 30, 50, .06);
+    --shadow:    0 2px 6px rgba(15, 30, 50, .08), 0 1px 2px rgba(15, 30, 50, .04);
+    --shadow-md: 0 6px 18px rgba(15, 30, 50, .10), 0 2px 6px rgba(15, 30, 50, .05);
+    --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, .6);
+
+    /* ---------- Типографика ---------- */
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+                 "Liberation Mono", monospace;
+
+    --fs-xs:  12px;
+    --fs-sm:  13px;
+    --fs-md:  14px;
+    --fs-lg:  16px;
+    --fs-xl:  20px;
+    --fs-2xl: 26px;
+    --fs-3xl: 32px;
+
+    --lh-tight: 1.25;
+    --lh-base:  1.5;
+
+    /* ---------- Layout ---------- */
+    --sidebar-w: 240px;
+    --topbar-h:  56px;
+    --container-pad: 24px;
+
+    /* ---------- Motion ---------- */
+    --transition: 150ms ease;
+    --transition-slow: 250ms ease;
+
+    /* ---------- Focus ---------- */
+    --focus-ring: 0 0 0 3px rgba(47, 111, 176, .28);
+}
+
+/* Уважаем reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    :root { --transition: 0ms; --transition-slow: 0ms; }
+    *, *::before, *::after { animation-duration: .001ms !important; }
+}
