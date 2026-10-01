@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Ошибка сервера{% endblock %}
+{% block content %}
+<div class="card empty-state">
+    <h2>500 — внутренняя ошибка сервера</h2>
+    <p class="text-muted">
+        Что-то пошло не так. Мы уже разбираемся.
+        Попробуйте обновить страницу позже.
+    </p>
+    <p><a class="btn" href="{{ url_for('index') }}">На главную</a></p>
+</div>
+{% endblock %}
