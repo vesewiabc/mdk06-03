@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}График смен{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>График работы персонала</h1>
+        <p class="subtitle">Смены сотрудников и распределение рабочего времени</p>
+    </div>
+</div>
+
+<div class="grid grid--2">
+
+    {# ================================
+       ЛЕВАЯ КОЛОНКА: СПИСОК СМЕН
+       ================================ #}
+    <div class="card">
+        <h3 class="mt-0">Смены</h3>
+
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Дата</th>
+                        <th scope="col">Сотрудник</th>
+                        <th scope="col">С</th>
+                        <th scope="col">До</th>
+                        {% if g.user['role'] == 'admin' %}
+                        <th scope="col" class="ta-right"></th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                {% for s in schedule %}
+                    <tr>
+                        <td class="cell-title">{{ s['work_date'] }}</td>
+                        <td>
+                            {{ s['full_name'] }}
+                            <span class="text-muted">({{ s['position'] }})</span>
+                        </td>
+                        <td>{{ s['shift_start'] }}</td>
+                        <td>{{ s['shift_end'] }}</td>
+
+                        {% if g.user['role'] == 'admin' %}
+                        <td class="ta-right">
+                            <form method="post"
+                                  action="{{ url_for('staff.remove_shift', shift_id=s['id']) }}"
+                                  data-confirm="Удалить эту смену?">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn--sm btn--danger" type="submit">Убрать</button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="{{ 5 if g.user['role'] == 'admin' else 4 }}"
+                            class="empty-state">Смены не назначены</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {# ================================
+       ПРАВАЯ КОЛОНКА: ДОБАВЛЕНИЕ СМЕНЫ
+       ================================ #}
+    {% if g.user['role'] == 'admin' %}
+    <div class="card">
+        <h3 class="mt-0">Добавить смену</h3>
+
+        <form method="post" action="{{ url_for('staff.new_shift') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="field">
+                <label for="employee_id">Сотрудник</label>
+                <select id="employee_id" name="employee_id" required>
+                    <option value="">— выберите сотрудника —</option>
+                    {% for e in employees %}
+                    <option value="{{ e['id'] }}">
+                        {{ e['full_name'] }} ({{ e['position'] }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="work_date">Дата</label>
+                <input type="date" id="work_date" name="work_date" required>
+            </div>
+
+            <div class="field">
+                <label for="shift_start">Начало</label>
+                <input type="time" id="shift_start" name="shift_start"
+                       value="10:00" required>
+            </div>
+
+            <div class="field">
+                <label for="shift_end">Окончание</label>
+                <input type="time" id="shift_end" name="shift_end"
+                       value="23:00" required>
+            </div>
+
+            <div class="form-actions btn-row">
+                <button class="btn" type="submit">Добавить смену</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}
